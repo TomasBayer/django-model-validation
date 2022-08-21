@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "django-model-validation"
+version = "0.1"
+description = ""
+authors = ["Tomas Bayer <mail@tomas.berlin>"]
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

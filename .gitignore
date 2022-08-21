@@ -1,0 +1,18 @@
+# pycache
+__pycache__/
+*.pyc
+
+# virtual environments
+/venv*/
+/.venv*/
+
+# IDE files
+/.idea/
+/.fleet/
+/.vscode/
+
+# Build files
+/dist/
+
+# Poetry lock files
+poetry.lock
