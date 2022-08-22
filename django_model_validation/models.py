@@ -29,7 +29,7 @@ class ModelBaseWithValidators(ModelBase):
         return new_class
 
 
-class ModelValidationMixin(metaclass=ModelBaseWithValidators):
+class ValidatingModel(models.Model, metaclass=ModelBaseWithValidators):
 
     @classmethod
     def _register_validator(cls, model_validator: ModelValidator) -> None:
@@ -82,3 +82,6 @@ class ModelValidationMixin(metaclass=ModelBaseWithValidators):
 
         if use_custom_validators is not False:
             yield from self.get_custom_validator_errors(use_all=use_custom_validators is True)
+
+    class Meta:
+        abstract = True

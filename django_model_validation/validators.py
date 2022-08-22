@@ -1,15 +1,17 @@
 from dataclasses import dataclass, field
 from types import GeneratorType
-from typing import Callable, Optional, Type
+from typing import TYPE_CHECKING, Callable, Optional, Type
 
 from django.core.exceptions import ValidationError
-from django.db import models
+
+if TYPE_CHECKING:
+    from django_model_validation.models import ValidatingModel
 
 
 @dataclass
 class ModelInstanceValidator:
     model_validator: 'ModelValidator'
-    model_instance: models.Model
+    model_instance: 'ValidatingModel'
 
     def get_validation_error(self) -> Optional[ValidationError]:
         try:
@@ -53,19 +55,19 @@ class ModelValidator:
     method: Callable
     auto: bool
 
-    model_type: Type[models.Model] = field(init=False, default=None)
+    model_type: Type['ValidatingModel'] = field(init=False, default=None)
 
     @property
     def name(self) -> str:
         return self.method.__name__
 
-    def get_instance_validator(self, obj: models.Model) -> ModelInstanceValidator:
+    def get_instance_validator(self, obj: 'ValidatingModel') -> ModelInstanceValidator:
         return ModelInstanceValidator(self, obj)
 
-    def __set_name__(self, model_type: models.Model, name: str):
+    def __set_name__(self, model_type: Type['ValidatingModel'], name: str):
         self.model_type = model_type
 
-    def __get__(self, instance: models.Model, cls=None):
+    def __get__(self, instance: 'ValidatingModel', cls=None):
         if instance is None:
             return self
         else:
