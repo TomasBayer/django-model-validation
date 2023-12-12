@@ -15,8 +15,8 @@ def validator(
         cache: bool = False,
         auto_use_cache: bool = True,
         auto_update_cache: bool = True,
-        cache_field_name: Optional[str] = None,
-        cache_field_verbose_name: Optional[str] = None,
+        property_name: Optional[str] = None,
+        property_verbose_name: Optional[str] = None,
 ):
     def decorator(method):
         return ModelValidator(
@@ -25,8 +25,8 @@ def validator(
             cache,
             auto_use_cache,
             auto_update_cache,
-            cache_field_name,
-            cache_field_verbose_name,
+            property_name,
+            property_verbose_name,
         )
 
     return decorator
@@ -108,7 +108,7 @@ class ValidatingModel(models.Model, metaclass=ModelBaseWithValidators):
             use_caches: Optional[bool] = None,
     ) -> dict[str, bool]:
         return {
-            model_validator.get_cache_field_name(): model_validator.get_instance_validator(self).is_valid(
+            model_validator.get_property_name(): model_validator.get_instance_validator(self).is_valid(
                 use_cache=use_caches)
             for model_validator in self._model_validators
             if use_all is True or model_validator.auto
@@ -176,7 +176,7 @@ class ValidatingModel(models.Model, metaclass=ModelBaseWithValidators):
             queryset = cls.objects.all()
 
         fields = [
-            model_validator.get_cache_field_name()
+            model_validator.get_property_name()
             for model_validator in cls._model_validators
             if model_validator.cache and (clear_all is True or model_validator.auto_update_cache)
         ]

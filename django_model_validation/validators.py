@@ -27,7 +27,7 @@ class ModelInstanceValidator:
             if isinstance(result, bool):
                 if not result:
                     return ValidationError(
-                        f"The validator \"{self.model_validator.get_cache_field_verbose_name()}\" failed.",
+                        f"The validator \"{self.model_validator.get_property_verbose_name()}\" failed.",
                     )
                 else:
                     return None
@@ -48,7 +48,7 @@ class ModelInstanceValidator:
         if self.model_validator.cache and update_cache:
             setattr(
                 self.model_instance,
-                self.model_validator.get_cache_field_name(),
+                self.model_validator.get_property_name(),
                 validation_error is None,
             )
 
@@ -81,25 +81,36 @@ class ModelInstanceValidator:
 
     def get_cache(self) -> Optional[bool]:
         try:
-            return getattr(self.model_instance, self.model_validator.get_cache_field_name())
+            return getattr(self.model_instance, self.model_validator.get_property_name())
         except AttributeError as err:
             raise ValidatorHasNoCacheError() from err
 
     def update_cache(self) -> None:
         try:
-            return setattr(self.model_instance, self.model_validator.get_cache_field_name(),
+            return setattr(self.model_instance, self.model_validator.get_property_name(),
                            self.is_valid(use_cache=False))
         except AttributeError as err:
             raise ValidatorHasNoCacheError() from err
 
     def clear_cache(self) -> None:
         try:
-            return setattr(self.model_instance, self.model_validator.get_cache_field_name(), None)
+            return setattr(self.model_instance, self.model_validator.get_property_name(), None)
         except AttributeError as err:
             raise ValidatorHasNoCacheError() from err
 
     def __call__(self, *args, **kwargs) -> None:
         self.validate(*args, **kwargs)
+
+
+@dataclass
+class IsValidProxy:
+    validator: 'ModelValidator'
+
+    def __get__(self, instance, owner):
+        if instance is not None:
+            return self.validator.get_instance_validator(instance).is_valid()
+        else:
+            raise AttributeError("This attribute can only be access from an instance.")
 
 
 @dataclass
@@ -109,8 +120,8 @@ class ModelValidator:
     cache: bool
     auto_use_cache: bool
     auto_update_cache: bool
-    cache_field_name: Optional[str]
-    cache_field_verbose_name: Optional[str]
+    property_name: Optional[str]
+    property_verbose_name: Optional[str]
 
     model_type: Type['ValidatingModel'] = field(init=False, default=None)
 
@@ -121,43 +132,45 @@ class ModelValidator:
     def get_instance_validator(self, obj: 'ValidatingModel') -> ModelInstanceValidator:
         return ModelInstanceValidator(self, obj)
 
-    def get_cache_field_name(self) -> str:
-        if self.cache_field_name is None:
+    def get_property_name(self) -> str:
+        if self.property_name is None:
             return f'is_{self.name}_successful'
         else:
-            return self.cache_field_name
+            return self.property_name
 
-    def get_cache_field_verbose_name(self) -> str:
-        if self.cache_field_verbose_name is None:
-            return self.get_cache_field_name()
+    def get_property_verbose_name(self) -> str:
+        if self.property_verbose_name is None:
+            return self.get_property_name()
         else:
-            return self.cache_field_verbose_name
+            return self.property_verbose_name
 
     def _register_for_model(self) -> None:
         if self.cache:
             self.model_type.add_to_class(
-                self.get_cache_field_name(),
-                ModelValidatorCacheField(verbose_name=self.cache_field_verbose_name),
+                self.get_property_name(),
+                ModelValidatorCacheField(verbose_name=self.property_verbose_name),
             )
+        elif self.property_name is not None:
+            setattr(self.model_type, self.get_property_name(), IsValidProxy(self))
 
     def get_is_valid_condition(self) -> Q:
         if self.cache:
-            return Q(**{self.get_cache_field_name(): True})
+            return Q(**{self.get_property_name(): True})
         else:
             raise ValidatorHasNoCacheError()
 
     def get_is_invalid_condition(self, *, include_unknown_validity: bool = False) -> Q:
         if self.cache:
             if include_unknown_validity:
-                return ~Q(**{self.get_cache_field_name(): True})
+                return ~Q(**{self.get_property_name(): True})
             else:
-                return Q(**{self.get_cache_field_name(): False})
+                return Q(**{self.get_property_name(): False})
         else:
             raise ValidatorHasNoCacheError()
 
     def get_is_cached_condition(self) -> Q:
         if self.cache:
-            return Q(**{f'{self.get_cache_field_name()}__isnull': False})
+            return Q(**{f'{self.get_property_name()}__isnull': False})
         else:
             raise ValidatorHasNoCacheError()
 
@@ -208,7 +221,7 @@ class ModelValidator:
         if queryset is None:
             queryset = self.model_type.objects.all()
 
-        queryset.update(**{self.get_cache_field_name(): None})
+        queryset.update(**{self.get_property_name(): None})
 
     def __set_name__(self, model_type: Type['ValidatingModel'], name: str):
         self.model_type = model_type
