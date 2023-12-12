@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Type
+from typing import Callable, Iterator, Optional, Type
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -10,6 +10,7 @@ from django_model_validation.validators import ModelValidator
 
 
 def validator(
+        function: Optional[Callable] = None,
         *,
         auto: bool = True,
         cache: bool = False,
@@ -29,7 +30,10 @@ def validator(
             property_verbose_name,
         )
 
-    return decorator
+    if function is None:
+        return decorator
+    else:
+        return decorator(function)
 
 
 class ModelBaseWithValidators(ModelBase):
