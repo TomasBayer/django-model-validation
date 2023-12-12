@@ -1,10 +1,11 @@
-from typing import Callable, Iterator, Optional, Type
+from typing import Any, Callable, Iterable, Iterator, Optional, Type, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Manager, Q, QuerySet
 from django.db.models.base import ModelBase
 
+from django_model_validation.required_fields import ensure_values_exist
 from django_model_validation.utils import collect_validation_errors
 from django_model_validation.validators import ModelValidator
 
@@ -442,6 +443,34 @@ class ValidatingModel(models.Model, metaclass=ModelBaseWithValidators):
             queryset = cls.objects.all()
 
         return queryset.filter(cls.get_custom_validity_condition()).exists()
+
+    def ensure_values_exist(
+            self,
+            *required_fields: Iterable[Union[str, tuple[str, Callable[[Any], bool]]]],
+            raise_single_error: bool = False,
+            error_message: Optional[str] = None,
+    ):
+        """
+        Ensures that the given fields are not blank and raises a `ValidationError` otherwise.
+
+        Args:
+            *required_fields: The fields that should be checked. Each field should either be the name of the field or a
+                pair containing the name of the field and a function which, given a field value, returns `True`
+                if the value is considered not blank and `False` otherwise.
+            raise_single_error (`bool`): If `True`, raise a ValidationError with a single non-field error message
+                instead of several field error messages. *Defaults to True.*
+            error_message: (`str`, optional) A custom error message that will be returned in case `raise_single_error`
+                is `True`.
+
+        Raises:
+            ValidationError: If any of the specified fields are blank.
+        """
+        ensure_values_exist(
+            self,
+            *required_fields,
+            raise_single_error=raise_single_error,
+            error_message=error_message,
+        )
 
     class Meta:
         abstract = True
