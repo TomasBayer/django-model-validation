@@ -4,6 +4,21 @@ from django_model_validation.validators import ModelValidator
 
 
 class UpdateModelValidatorCache(RunPython):
+    """
+    Custom migration operation to update the cache of custom validators for a given model.
+
+    Args:
+        model_name (str): The name of the model.
+        *validators: Reference to the validator method whose cache should be updated. The methods must
+         have a `@validator` decorator using `cache=True`.
+
+    Example:
+        class Migration(migrations.Migration):
+            operations = [
+                UpdateModelValidatorCache('MyModel', MyModel.validate_something, MyModel.validate_something_else)
+            ]
+    """
+
     reversible = True
 
     def __init__(self, model_name: str, *validators: ModelValidator):
