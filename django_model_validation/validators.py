@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from types import GeneratorType
 from typing import TYPE_CHECKING, Callable, Optional, Type
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db.models import Q, QuerySet
 
 from django_model_validation.cache_field import ModelValidatorCacheField
@@ -229,10 +229,13 @@ class ModelValidator:
 
     def _register_for_model(self) -> None:
         if self.cache:
-            self.model_type.add_to_class(
-                self.get_property_name(),
-                ModelValidatorCacheField(verbose_name=self.property_verbose_name),
-            )
+            try:
+                _field = self.model_type._meta.get_field(self.get_property_name())
+            except FieldDoesNotExist:
+                self.model_type.add_to_class(
+                    self.get_property_name(),
+                    ModelValidatorCacheField(verbose_name=self.property_verbose_name),
+                )
         elif self.property_name is not None:
             setattr(self.model_type, self.get_property_name(), IsValidProxy(self))
 
