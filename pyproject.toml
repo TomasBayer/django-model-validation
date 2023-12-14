@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "django-model-validation"
 version = "0.1"
-description = ""
+description = "A Django app that simplifies custom data validation for models"
 authors = ["Tomas Bayer <mail@tomas.berlin>"]
 readme = "README.md"
 license = "MIT"
